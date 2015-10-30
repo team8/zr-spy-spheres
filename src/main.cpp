@@ -1,64 +1,74 @@
 //Begin page Picture Stuff
-// TODO: Give 1/4 radian tolerance
+//version 2 am
+#define MIN_PIC_ENERGY 2.0f
+#define MAX_UPLOAD_VEL 0.05f 
+#define MAX_UPLOAD_ANGLE 0.25f
+#define MIN_UPLOAD_ENERGY 1.0f
+#define UPLOAD_ANGLE_PID_TARGET 0.15f
+
+bool inFacingEPID;
+float earthFacingDirectional[3];
+float angleToEarth;
+
 void faceEarth(){
-//   if(!game.isFacingOther()){
-       float directional[3];
-       float earth[3];
-        earth[0] = 0.0f;
-        earth[1] = 0.0f;
-        earth[2] = 1.0f;
-       mathVecSubtract(directional, zr_pos(earth), zr_pos(my_state), 3);
-       mathVecNormalize(directional, 3);
-       api.setAttitudeTarget(directional);
-//   }
-}
-
-void face(){
-   if(!game.isFacingOther()){
-       float directional[3];
-       mathVecSubtract(directional, zr_pos(other_state), zr_pos(my_state), 3);
-       mathVecNormalize(directional, 3);
-       api.setAttitudeTarget(directional);
-   }
-}
-void attemptPic(){
-    // we should not use isFacingOther as actual pictures have 0.25 radians of tolerance
-    DEBUG(("Facing Other: %d", game.isFacingOther()));
-	if(game.isFacingOther() == 1){
-	    DEBUG(("FACING OTHER ROBOT"));
-		if(game.getEnergy() >= 2.0f){
-			if(game.posInLight(zr_pos(other_state))){
-				game.takePic();
-				DEBUG(("TOOK PIC"));
-			}
-			else{
-			    DEBUG(("Opposing robot in dark"));
-			}
-		}
-		else{
-		    DEBUG(("Not enough energy"));
-		}
-		
-	}
-}
-
-// TODO: Build in tolerance
-void attemptUpload() {
-    float earth[3];
-    earth[0] = 0.0f;
-    earth[1] = 0.0f;
-    earth[2] = 1.0f;
-    // faceEarth();
-    api.setAttitudeTarget(earth);
-    DEBUG(("zr_att(my_state)[2]: %f", zr_att(my_state)[2]));
-    if(zr_att(my_state)[2] > 0.8 && rotVel(my_state) < 0.05) {
-        DEBUG(("Uploading"));
-        game.uploadPics();
+    if(uploadConditionsMet) {
+       inFacingEPID = false;
+    }
+    else {
+        api.setAttitudeTarget(earthFacingDirectional);
+    }
+    
+    if(!inFacingEPID && angleToEarth > MAX_UPLOAD_ANGLE){
+        for(int i = 0; i <= 2; i++) {
+          earthFacingDirectional[i] = zr_att(my_state)[i];
+        }
+        dropInclinationToTargetAngle(zr_att(my_state), earthFacingDirectional);
+        inFacingEPID = true;
     }
 }
 
+void face(){
+   if(!facingOther){
+       float facing_vec[3];
+       mathVecSubtract(facing_vec, zr_pos(other_state), zr_pos(my_state), 3);
+       mathVecNormalize(facing_vec, 3);
+       api.setAttitudeTarget(facing_vec);
+   }
+}
+
+void attemptPic(){
+	if(facingOther && memoryFilled < 2 && 
+	energy >= MIN_PIC_ENERGY && game.isCameraOn() &&
+	game.getMirrorTimeRemaining() == 0  && !game.posInDark(zr_pos(other_state)) 
+	&& picCondition()){
+		 game.takePic();
+	}
+}
+bool picCondition() {
+    if(mirrorsHeld == 2 && game.getPicPoints() < 0.11) {
+        return false;
+    }
+    return true;
+}
+void attemptUpload() {
+    faceEarth();
+    if(uploadConditionsMet) {
+        game.uploadPics();
+    }
+}
+void tryPic() {
+    if (memoryFilled == 2 || (phase == 4 && memoryFilled > 0)) {
+        angleToEarth = acosf((zr_att(my_state))[2]);
+        attemptUpload();
+    } else {
+        face();
+        attemptPic();
+    }
+}
 //End page Picture Stuff
 //Begin page main
+
+
 enum State {
 	PHASE1_MIRROR, // starting game phase, the robot will head towards the closest mirror then transition to phase1_item
 	PHASE12_ITEM, // moves towards the top scoring item while in phase1 or phase2. will transition to phase2_wait
@@ -70,28 +80,30 @@ enum State {
 int phase;
 char color;
 int game_time;
-
+bool end_pos_reached;
+float energy;
 
 void init() {
+    setItems();
+    inFacingEPID= false;
+    end_pos_reached;
+    setEarth();
 	setSphereData();
     game_time = 0;
 	phase = 1;
 	state = PHASE1_MIRROR;
 	setColor();
-	phase1_mirrorInit();
+	setMirrorValues();
 	setSwitchTimes();
 	DEBUG(("Greetings from Paly Robotics, FRC Team #8"));
 	DEBUG(("After the match check us out at palyrobotics.com"));
 }
 
 void loop() {
+    updateValues();
     game_time++;
-    setItemPos();
 	setSphereData();
 	setGamePhase();
-    DEBUG(("RotVel: %f", rotVel(my_state)));
-	// remove this before submission
-	DEBUG(("Phase: %d || State: %d", phase, state));
 
 	switch(state) {
 		case PHASE1_MIRROR:
@@ -112,321 +124,178 @@ void loop() {
 		case PHASE4_ENDGAME:
     		phase4_endgameLoop();
     		break;
-		default:
-	    	DEBUG(("NO STATE"));
-	    	break;
-	
 	}
-	face();
-    attemptPic();
-    if(game.getMemoryFilled() == 2) {
-        attemptUpload();
-    }
+    tryPic();
 }
 //End page main
-//Begin page phase12_item
-// picks up the top scoring object regardless of current position while in phase 1 or 2
-
-void phase12_itemInit() {
-    
+//Begin page mathHelper
+void dropInclinationToTargetAngle(float currentAtt[3], float upload[3]) {
+    float c = sinf(UPLOAD_ANGLE_PID_TARGET) / sqrtf(mathSquare(currentAtt[0]) + mathSquare(currentAtt[1]));
+    upload[0] = c * currentAtt[0];
+    upload[1] = c * currentAtt[1];
+    upload[2] = cosf(UPLOAD_ANGLE_PID_TARGET);
 }
-
-void phase12_itemLoop() {
-	moveToTopScoring();
-	
-	if(game.hasItem(6) != -1) {
-		state = PHASE2_WAIT;
-		phase2_waitInit();
+//End page mathHelper
+//Begin page moveHelper
+void endpointMove(float stopped_edge, float lower_edge, float upper_edge, float destination[]){
+	float vector_between[3];
+	mathVecSubtract(vector_between, destination, zr_pos(my_state) , 3);
+	api.setPositionTarget(destination);
+	if(stopped(stopped_edge) && zr_pos(my_state)[1] < upper_edge && zr_pos(my_state)[1] > lower_edge) {
+		end_pos_reached = true;
 	}
 }
 
-void moveToTopScoring() {
+void moveToItem(int ID, float v_pid_edge, float p_pid_edge) {
 	float vector_between[3];
-	mathVecSubtract(vector_between, items[6], zr_pos(my_state) , 3);
+	mathVecSubtract(vector_between, items[ID], zr_pos(my_state) , 3);
 	float distance = mathVecMagnitude(vector_between, 3);
 
-	if(distance > 0.4) {
-		// looped PID calls :(
+	if(distance > v_pid_edge) {
 		api.setVelocityTarget(vector_between);
 	} 
 
-	if(distance < 0.3) {
-		// looped PID calls :(
-		api.setPositionTarget(items[6]);
+	if(distance < p_pid_edge) {
+		api.setPositionTarget(items[ID]);
+	}
+}
+//End page moveHelper
+//Begin page phase12_item
+// picks up the top scoring object regardless of current position while in phase 1 or 2
+
+#define TOP_SCORING_ID 6
+#define P12_VELOCITY_PID_EDGE 0.4f
+#define P12_POSITION_PID_EDGE 0.3f
+
+void phase12_itemLoop() {
+	moveToItem(TOP_SCORING_ID, P12_VELOCITY_PID_EDGE, P12_POSITION_PID_EDGE);
+
+	if(game.hasItem(TOP_SCORING_ID) != -1) {
+		state = PHASE2_WAIT;
+		phase2_waitInit();
 	}
 }
 //End page phase12_item
 //Begin page phase1_mirror
 // phase 1 mirror currently only goes for the closest mirror as the tracking remains bugged
-// no pictures are taken during this phase, that should be fixed as well
 
-
+#define P1_VELOCITY_PID_EDGE 0.6f
+#define P1_POSITION_PID_EDGE 0.35f
+#define BLUE_MIRROR 8
+#define RED_MIRROR 7
 
 int close_mirror;
-int far_mirror;
 
-void phase1_mirrorInit() {
-	setMirrorValues();
-}
 void phase1_mirrorLoop() {
-	moveToCloseMirror();
+	moveToItem(close_mirror ,P1_VELOCITY_PID_EDGE, P1_POSITION_PID_EDGE);
+	
 	if (game.getNumMirrorsHeld() > 0) {
 	    state = PHASE12_ITEM;
-	    phase12_itemInit();
 	}
 }
 
 void setMirrorValues() {
+    close_mirror = RED_MIRROR;
 	if(color == 'B') {
-	    DEBUG(("I am a Blue robot, moving to item 8"));
-		close_mirror = 8;
-		far_mirror = 7;
-	}
-	else {
-	    DEBUG(("I am a Red robot, moving to item 7"));
-		close_mirror = 7;
-		far_mirror = 8;
+		close_mirror = BLUE_MIRROR;
 	}
 }
-
-void moveToCloseMirror() {
-	float vector_between[3];
-	mathVecSubtract(vector_between, items[close_mirror], zr_pos(my_state) , 3);
-	float distance = mathVecMagnitude(vector_between, 3);
-
-    DEBUG(("Distance between zr_pos and close_mirror: %f", distance));
-    printPosition(items[close_mirror]);
-	printPosition(zr_pos(my_state));
-	
-	if(distance > 0.6) {
-		// looped PID calls :(
-		api.setVelocityTarget(vector_between);
-	} 
-
-	if(distance < 0.35) {
-		// looped PID calls :(
-		api.setPositionTarget(items[close_mirror]);
-	}
-}
-
-// not called yet
-void moveToFarMirror() {
-	float vector_between[3];
-	mathVecSubtract(vector_between, items[far_mirror], zr_pos(my_state),3);
-	float distance = mathVecMagnitude(vector_between, 3);
-
-	if(distance > 0.5) {
-		// looped PID calls :(
-		api.setVelocityTarget(vector_between);
-	} else {
-		// looped PID calls :(
-		api.setPositionTarget(items[far_mirror]);
-	}	
-}
-
 //End page phase1_mirror
 //Begin page phase2_energy
-float rest_pos[3];
-bool rest_pos_reached;
-
 void phase2_energyInit() {
-	// TODO: set actual values
-	rest_pos[0] = 0.0f;
-	rest_pos[1] = -0.2f;
-	rest_pos[2] = -0.5f;
-
-	rest_pos_reached = false;
+	end_pos_reached = false;
+	destination_pos[1] = -0.25f;
 	game.useMirror();
 }
 
-void phase2_energyLoop() {
-	if(!rest_pos_reached) {
-		moveToRestPos();
+void phase2_energyLoop(){ 
+	if(!end_pos_reached) {
+		endpointMove(0.01f, -0.11f, -0.09f, destination_pos);
 	}
 	else {
 	    state = PHASE3_TRACKING;
-	    phase3_trackingInit();
 	}
-	if(phase == 3) {
-		state = PHASE3_TRACKING;
-		phase3_trackingInit();
-	}
-}
-
-void moveToRestPos() {
-	float vector_between[3];
-	mathVecSubtract(vector_between,rest_pos, zr_pos(my_state) , 3);
-	float distance = mathVecMagnitude(vector_between, 3);
-
-	// looped PID calls :(
-	DEBUG(("Moving to wait position soft PID"));
-	api.setPositionTarget(rest_pos);
-	if(stopped(0.01) && zr_pos(my_state)[1] < 0.11f && zr_pos(my_state)[1] > 0.09f) {
-		DEBUG(("Rest position reached"));
-		rest_pos_reached = true;
-	}
+ 	if(phase == 3) {
+ 		state = PHASE3_TRACKING;
+ 	}
 }
 //End page phase2_energy
 //Begin page phase2_wait
-float wait_pos[3];
-bool wait_pos_reached;
-
-
 void phase2_waitInit() {
-	// TODO: set actual values
-	wait_pos[0] = 0.0f;
-	wait_pos[1] = 0.1f;
-	wait_pos[2] = -0.5f;
-	wait_pos_reached = false;
+	end_pos_reached = false;
+	destination_pos[0] = 0.0f;
+	destination_pos[1] = 0.15f;
+	destination_pos[2] = -0.5f;
 }
 
 void phase2_waitLoop() {
-	if(!wait_pos_reached) {
-		conservativeMoveToWaitPos();
+	if(!end_pos_reached) {
+		endpointMove(0.001f, 0.09f, 0.11f, destination_pos);
 	}
+	
 	if(game_time > switch_times[1] - 24) {
 		state = PHASE2_ENERGY;
+		end_pos_reached = true;
 		phase2_energyInit();
-	}
-}
-
-// moves the wait_pos using a very conservative amount of fuel
-void conservativeMoveToWaitPos() {
-	float vector_between[3];
-	mathVecSubtract(vector_between, wait_pos, zr_pos(my_state) , 3);
-	float distance = mathVecMagnitude(vector_between, 3);
-
-	// looped PID calls :(
-	DEBUG(("Moving to wait position soft PID"));
-	api.setPositionTarget(wait_pos);
-	if(stopped(0.001) && zr_pos(my_state)[1] < 0.11f && zr_pos(my_state)[1] > 0.09f) {
-		DEBUG(("Wait position reached"));
-		wait_pos_reached = true;
 	}
 }
 //End page phase2_wait
 //Begin page phase3_tracking
-float z_lock;
-float y_lock;
-
+#define PHASE_3_TRACKING_Y -0.2f
+#define PHASE_3_TRACKING_Z -0.5f
+#define ENERGY_FOLLOW_LIMIT 1.0f
  
-void phase3_trackingInit() {
-	z_lock = -0.5f;
-	y_lock = -0.2f;
-}
 void phase3_trackingLoop(){
-	follow(y_lock);
-	face();
-	attemptPic();
-    if(game.getMemoryFilled() == 2) {
-        attemptUpload();
+    if(energy > ENERGY_FOLLOW_LIMIT) {
+	    follow(PHASE_3_TRACKING_Y);
     }
 	if(phase == 4) {
 	    state = PHASE4_ENDGAME;
-		phase4_endgameInit();
 	}
 }
 
 void follow(float y){
     float target_pos[3];
-    target_pos[0] = other_state[0];
-    target_pos[1] = y_lock;
-    target_pos[2] = z_lock;
-    // open loop PID :(
+    target_pos[0] = 0.0f;
+    target_pos[1] = PHASE_3_TRACKING_Y;
+    target_pos[2] = PHASE_3_TRACKING_Z;
     api.setPositionTarget(target_pos);
 }
-// void attemptPic(){
-//     // we should not use isFacingOther as actual pictures have 0.25 radians of tolerance
-//     DEBUG(("Facing Other: %d", game.isFacingOther()));
-// 	if(game.isFacingOther()){
-// 		if(game.getEnergy() >= 2.0f){
-// 			if(game.posInLight(zr_pos(other_state))){
-// 				game.takePic();
-// 			}
-// 			else{
-// 			    DEBUG(("Opposing robot in dark"));
-// 			}
-// 		}
-// 		else{
-// 		    DEBUG(("Not enough energy"));
-// 		}
-		
-// 	}
-// }
-
-// // TODO: Build in tolerance
-// void attemptUpload() {
-//     float earth[3];
-//     earth[0] = 0.0f;
-//     earth[1] = 0.0f;
-//     earth[2] = 1.0f;
-//     api.setAttitudeTarget(earth);
-//     DEBUG(("zr_att(my_state)[2]: %f", zr_att(my_state)[2]));
-//     if(zr_att(my_state)[2] > 0.8 && rotVel(my_state) < 0.05) {
-//         DEBUG(("Uploading"));
-//         game.uploadPics();
-//     }
-// }
 //End page phase3_tracking
 //Begin page phase4_endgame
 #define ZPOSITION -0.5f
 
-bool objectsLeft;
-void phase4_endgameInit() {
-	DEBUG(("In P4_Endgame, no code yet"));
-    objectsLeft = false;
-}
-
 void phase4_endgameLoop() {
-    // moveToBottomScoring();
-    moveToDarkAndTakePics();
-}
-
-void moveToDarkAndTakePics() {
     float pos[3];
-    pos[0] = other_state[0];
+    pos[0] = 0.0f;
     pos[1] = 0.25f;
     pos[2] = 0.0f;
-    
-    if (game.posInDark(pos)) {
-        api.setPositionTarget(pos);
-    } else {
-        pos[1] = -.25f;
-        api.setPositionTarget(pos);
-        
-    }
+    api.setPositionTarget(pos);
 }
-// void moveToBottomScoring() {
-// 	float vector_between[3];
-// 	mathVecSubtract(vector_between, items[4], zr_pos(my_state) , 3);
-// 	float distance = mathVecMagnitude(vector_between, 3);
 
-
-
-// 	if(distance > 0.6) {
-// 		// looped PID calls :(
-// 		api.setVelocityTarget(vector_between);
-// 	} 
-
-// 	if(distance < 0.3) {
-// 		// looped PID calls :(
-// 		api.setPositionTarget(items[4]);
-// 	}
-
-// }
 //End page phase4_endgame
 //Begin page stateHelper
 float my_state[12];
 float other_state[12];
-float items[9][3];
 float switch_times[4];
+float earth[3];
+float items[9][3];
+float destination_pos[3];
 
-void setItemPos() {
-	for(int i = 0; i < 9; i++) {
-	    for(int j = 0; j < 3; j++) {
-	        items[i][j] = ITEM_LOC[i][j];
-	    }
-	}
+bool facingOther;
+int memoryFilled;
+int mirrorsHeld;
+float rotVel;
+bool uploadConditionsMet;
+int counter;
+
+void updateValues() {
+    energy = game.getEnergy();
+    facingOther = game.isFacingOther();
+    memoryFilled = game.getMemoryFilled();
+    mirrorsHeld = game.getNumMirrorsHeld();
+    rotVel = getRotVel(my_state);
+    uploadConditionsMet = getUploadConditionsMet();
 }
 
 void setSphereData() {
@@ -434,13 +303,16 @@ void setSphereData() {
 	api.getOtherZRState(other_state);
 }
 
+void setEarth() {
+    earth[0] = 0;
+    earth[1] = 0;
+    earth[2] = 1;
+}
 
 void setColor() {
+    color = 'R';
 	if(zr_pos(my_state)[0] > 0) {
 		color = 'B';
-	}
-	else {
-		color = 'R';
 	}
 }
 
@@ -457,12 +329,9 @@ void setGamePhase() {
     }
 }
 
-void printPosition(float pos[3]) {
-    DEBUG(("Position (x, y, z): (%f, %f, %f)", pos[0], pos[1], pos[2]));
-}
 
-bool stopped(float limit) {
-	return mathVecMagnitude(zr_velocity(my_state), 3) > limit;
+bool getUploadConditionsMet(){
+    return (angleToEarth < MAX_UPLOAD_ANGLE && rotVel < MAX_UPLOAD_VEL);
 }
 
 
@@ -481,7 +350,7 @@ bool stopped(float limit) {
 
 //position vector
  float* zr_pos(float state[12]) {
- 	return &state[0];
+     return &state[0];
  }
 
 //attitude vector
@@ -494,11 +363,23 @@ bool stopped(float limit) {
  	return &state[9];
  }
  
- float rotVel(float state[12]) {
+ float getRotVel(float state[12]) {
      float rot[3];
-     rot[0] = zr_rot(my_state)[0];
-     rot[1] = zr_rot(my_state)[1];
-     rot[2] = zr_rot(my_state)[2];
+     for(int i = 0; i < 3; i++) {
+         rot[i] = zr_rot(my_state)[i];
+     }
      return mathVecMagnitude(rot, 3);
  }
+ 
+void setItems() {
+    for(int i = 0; i < 9; i++) {
+        for(int j = 0; j < 3; j++) {
+            items[i][j] = ITEM_LOC[i][j];
+        }
+    }
+} 
+
+bool stopped(float limit) {
+	return mathVecMagnitude(zr_velocity(my_state), 3) > limit;
+}
 //End page stateHelper
