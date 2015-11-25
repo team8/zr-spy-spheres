@@ -25,7 +25,10 @@ void moveToTopItem(){
 }
 
 void moveToBottomItem(){
-
+	float[3] bottomCorrect;
+	//Copy the position of the bottom item for the correct side.  whichItemIdIsBottom should return the id on the left for us (dependent on if we are left or right)
+	api.getItemLoc(bottomCorrect, whichItemIdIsBottom());
+	api.setPositionTarget(bottomCorrect);
 }
 
 void moveWithHorizontalVector(){

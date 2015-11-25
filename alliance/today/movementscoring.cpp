@@ -24,7 +24,7 @@ float scoreStay(){
 }
 
 float scoreMoveUp(){
-
+	
 }
 
 float scoreMoveDarkFollow(){
