@@ -1,19 +1,10 @@
-
-bool facingEarth() {
-	
-}
-
-float picScore() {
+float pictureScore() {
 	if (!facingOther || energy <= minPicEnergy ) {
 		//we're not facing them or were out of energy-> We dont need to take a pic
 		return -1.0f;
 	}	
 	
 	return *(energy)+180-timeLeft;
-
-		
-	
-	
 }
 
 float uploadScore() {

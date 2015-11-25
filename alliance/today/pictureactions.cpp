@@ -1,16 +1,16 @@
-void takePic() { 
+void takePictureAction() { 
 	game.takePic();
 }
 
-void uploadPics() {
+void uploadPictureAction() {
 	game.uploadPics();
 }
 
 //writen by motion team
-void faceEarth() {
+void faceEarthAction() {
 
 }
 
-void faceOther() {
+void faceOtherAction() {
 
 }
