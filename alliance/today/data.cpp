@@ -99,8 +99,10 @@ bool isSphereRed() {
 
 float getLeading() {
 	float leading = 1.05 + game.getLightInterfacePosition();
+	return leading;
 }
 
 float getTrailing() {
 	float trailing = 0.05 + game.getLightInterfacePosition();
+	return trailing;
 }
