@@ -1,5 +1,5 @@
 #define TAKE_PIC_MIN_ENERGY 1.5f
-
+#define ENERGY_CONST 1.0f
 //motion team please write this
 bool facingEarth() {
 	
@@ -11,16 +11,25 @@ float picScore() {
 		return -1.0f;
 	}	
 	
-	return 
+	return ENERGY_CONST*(energy)+180-timeLeft;
+
 		
 	
 	
 }
 
 float uploadScore() {
+
 	if (!facingEarth()) {
 		return -1.0f;
 	} 
+	
+	return memFilled*(180-timeLeft);	
 }
 
+float faceEarthScore() {
 
+}
+float faceOtherScore() {
+	
+}
