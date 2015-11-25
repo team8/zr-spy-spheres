@@ -1,0 +1,12 @@
+enum Movements{
+	STAY = 0,
+	MOVE_UP = 1,
+	MOVE_FOLLOW_DARK = 2,
+	MOVE_FOLLOW_LIGHT = 3,
+	MOVE_NEAREST_ITEM_UP = 4,
+	MOVE_NEAREST_ITEM_DOWN = 5
+};
+
+Movements move = STAY;
+
+
