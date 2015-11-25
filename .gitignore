@@ -28,7 +28,8 @@
 *.cproject
 .settings/
 *.out
-.debug/
+Debug/
+.DS_Store
 *.app
 *.i*86
 *.x86_64
