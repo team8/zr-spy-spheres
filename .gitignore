@@ -22,6 +22,11 @@
 
 # Executables
 *.exe
+
+#Eclipse
+*.project
+*.cproject
+.settings/
 *.out
 *.app
 *.i*86
