@@ -33,6 +33,34 @@ void loop() {
     act();
 }
 
+void score() {
+    float move_scores[7];
+    move_scores[0] = mirrorScore();
+    move_scores[1] = scoreUpperScore();
+    move_scores[2] = scoreLowerAction();
+    move_scores[3] = topAreaLazyScore();
+    move_scores[4] = topAreaDarkLeadScore();
+    move_scores[5] = topAreaDarkTrailScore();
+    move_scores[6] = topAreaLight();
+    for(int i = 0; i < sizeof(move_scores) / FLOAT_SIZE; i++) {
+        if (move_scores[i] >= move_scores[MoveState]){
+            move_scores = (MoveState) i;
+        }
+    }
+
+    float picture_scores[5];
+    picture_scores[0] = 0;
+    picture_scores[1] = faceOtherScore();
+    picture_scores[2] = pictureScore();
+    picture_scores[3] = faceEarthScore();
+    picture_scores[4] = uploadScore();
+    for(int i = 0; i < sizeof(picture_scores) / FLOAT_SIZE; i++) {
+        if (picture_scores[i] >= picture_scores[PictureState]){
+            picture_scores = (PictureState) i;
+        }
+    }
+}
+
 void act() {
     switch(move_state_) {
         case MIRROR:
