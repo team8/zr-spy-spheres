@@ -13,7 +13,14 @@ enum Movements{
 Movements move = STAY;
 
 float scoreStay(){
+	float posOpp[3];
 
+	if(game.getOtherEnergy() == 0 && game.posInGrey(possOpp)){
+		//If they have no energy and they are in the grey zone, we shouldn't be moving
+		return 100.0f;
+		//This should take precedence if possible
+	}
+	return 0.0f;
 }
 
 float scoreMoveUp(){

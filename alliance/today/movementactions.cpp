@@ -7,11 +7,17 @@ void moveUp(){
 }
 
 void moveToDark(){
-
+	/*
+	Here is where the implementation for moving up to the dark should go.
+	*/
+	moveWithHorizontalVector(); // After we are at the height we want to be at, we should move with a horizontal vector
 }
 
 void moveToLight(){
-
+	/*
+	Here is where the implementation for moving up to the light should go.
+	*/
+	moveWithHorizontalVector(); // After we are at the height we want to be at, we should move with a horizontal vector
 }
 
 void moveToTopItem(){
