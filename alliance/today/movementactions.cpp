@@ -21,7 +21,10 @@ void moveToLight(){
 }
 
 void moveToTopItem(){
-
+	float[3] topCorrect;
+	//Copy the position of the bottom item for the correct side.  whichItemIdIsBottom should return the id on the left for us (dependent on if we are left or right)
+	api.getItemLoc(topCorrect, whichItemIdIsTop());
+	api.setPositionTarget(topCorrect);
 }
 
 void moveToBottomItem(){
@@ -44,3 +47,13 @@ void move(float pos[3]){
 	api.setPositionTarget(pos); //Move there
 	//Takes an x,y,z and moves the sphere there
 }
+
+void moveToMirror(){
+	float mirrorLoc[3];
+	api.getItemLoc(mirrorLoc,getCloserMirrorNumber());
+	api.setPositionTarget(mirrorLoc);
+
+}
+
+
+

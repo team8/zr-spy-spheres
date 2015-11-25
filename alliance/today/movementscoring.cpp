@@ -7,7 +7,8 @@ enum Movements{
 	MOVE_FOLLOW_DARK = 2,
 	MOVE_FOLLOW_LIGHT = 3,
 	MOVE_NEAREST_ITEM_UP = 4,
-	MOVE_NEAREST_ITEM_DOWN = 5
+	MOVE_NEAREST_ITEM_DOWN = 5,
+	MOVE_TO_MIRROR = 6
 };
 
 Movements move = STAY;
@@ -24,7 +25,7 @@ float scoreStay(){
 }
 
 float scoreMoveUp(){
-	
+
 }
 
 float scoreMoveDarkFollow(){
@@ -51,7 +52,7 @@ float updateScore(){
 	scores_move[4] = scoreMoveItemUp();
 	scores_move[5] = scoreMoveItemDown();
 	int  max;
-	for (int i = 0; i < 6; i++) if (max > scores_move[i]) max = i;
+	for (int i = 0; i < 7; i++) if (max > scores_move[i]) max = i;
 	return max;
 }
 
@@ -75,6 +76,9 @@ void update(){
 			break;
 		case MOVE_NEAREST_ITEM_DOWN:
 			moveToBottomItem();
+			break;
+		case MOVE_TO_MIRROR:
+			moveToMirror();
 			break;
 		break;
 	};
