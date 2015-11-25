@@ -1,7 +1,7 @@
 #define FLOAT_SIZE 4
 
-enum MoveState{
-    MIRROR = 0, //Move to Mirror State
+enum MoveState {
+    MIRROR = 0,
     SCORE_UPPER = 1, 
     SCORE_LOWER = 2,
     TOP_AREA_LAZY = 3,
@@ -19,7 +19,7 @@ enum PictureState {
     FACE_EARTH = 3;
 	UPLOAD = 4,
 	BLANK
-}
+} picture_state_;
 
 void init() {
 	initData();
