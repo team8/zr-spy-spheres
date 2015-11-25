@@ -11,6 +11,7 @@ enum MoveState{
     BLANK
 } move_state_;
 
+
 enum PictureState {
 	NONE = 0,
 	FACE = 1,
@@ -19,10 +20,45 @@ enum PictureState {
 	BLANK
 }
 
-void init(){
+void init() {
 	initData();
-    //Initialize the values
-	state = BLANK;
-    //Init the state
-    picLoop();
+	move_state_ = BLANK;
+    picture_state_ = BLANK;
+}
+
+void loop() {
+    updateData();
+    score();
+    act();
+}
+
+void score() {
+    switch(move_state_) {
+    case MIRROR:
+        mirrorAction();  
+        break;
+    case SCORE_UPPER:
+        scoreUpperAction();
+        break;
+    case SCORE_LOWER:
+        scoreLowerAction();
+        break;
+    case TOP_AREA_LAZY:
+        topAreaLazyAction();
+        break;
+    case TOP_AREA_DARK_LEAD:
+        topAreaDarkLeadAction();
+        break;
+    case TOP_AREA_DARK_TRAIL:
+        topAreaDarkTrailAction();
+        break;
+    case TOP_AREA_LIGHT:
+        topAreaLightAction();
+        break;
+    case BLANK:
+        DEBUG(("Blank move_state_"));
+        break;
+    default:
+        DEBUG(("Invalid move_state_ with index: %d", move_state_));
+    }
 }
