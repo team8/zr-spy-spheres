@@ -1,37 +1,34 @@
-void stay(){
+void mirrorAction() {
 
 }
 
-void moveUp(){
-
-}
-
-void moveToDark(){
-	/*
-	Here is where the implementation for moving up to the dark should go.
-	*/
-	moveWithHorizontalVector(); // After we are at the height we want to be at, we should move with a horizontal vector
-}
-
-void moveToLight(){
-	/*
-	Here is where the implementation for moving up to the light should go.
-	*/
-	moveWithHorizontalVector(); // After we are at the height we want to be at, we should move with a horizontal vector
-}
-
-void moveToTopItem(){
-	float[3] topCorrect;
+void scoreUpperAction() {
+float[3] topCorrect;
 	//Copy the position of the bottom item for the correct side.  whichItemIdIsBottom should return the id on the left for us (dependent on if we are left or right)
 	api.getItemLoc(topCorrect, whichItemIdIsTop());
 	api.setPositionTarget(topCorrect);
 }
 
-void moveToBottomItem(){
-	float[3] bottomCorrect;
+void scoreLowerAction() {
+float[3] bottomCorrect;
 	//Copy the position of the bottom item for the correct side.  whichItemIdIsBottom should return the id on the left for us (dependent on if we are left or right)
 	api.getItemLoc(bottomCorrect, whichItemIdIsBottom());
 	api.setPositionTarget(bottomCorrect);
+}
+
+void topAreaLazyAction() {
+
+}
+
+void topAreaDarkLeadAction() {
+
+}
+
+void topAreaDarkTrailAction() {
+
+}
+void topAreaLightAction() {
+	
 }
 
 void moveWithHorizontalVector(){
