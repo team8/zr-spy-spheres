@@ -29,9 +29,15 @@ void moveToBottomItem(){
 }
 
 void moveWithHorizontalVector(){
+	float h_vector[3];
+	h_vector[0] = 0;
+	h_vector[1] = 1;
+	h_vector[2] = 0;
+	api.setVelocityTarget(h_vector);
 	//Set the horizontal vector to keep moving
 }
 
 void move(float pos[3]){
+	api.setPositionTarget(pos); //Move there
 	//Takes an x,y,z and moves the sphere there
 }
