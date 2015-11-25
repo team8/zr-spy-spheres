@@ -1,4 +1,5 @@
 float scores_move[5];
+
 //In the order of the enum Movements
 enum Movements{
 	STAY = 0,
@@ -35,15 +36,42 @@ float scoreMoveItemDown(){
 
 }
 
-void updateScore(){
+float updateScore(){
 	scores_move[0] = scoreStay();
 	scores_move[1] = scoreMoveUp();
 	scores_move[2] = scoreMoveDarkFollow();
 	scores_move[3] = scoreMoveLightFollow();
 	scores_move[4] = scoreMoveItemUp();
 	scores_move[5] = scoreMoveItemDown();
+	int  max;
+	for (int i = 0; i < 6; i++) if (max > scores_move[i]) max = i;
+	return max;
 }
 
+void update(){
+	move = (Movement) updateScore();
+	switch (move){
+		case STAY:
+			stay();
+			break;
+		case MOVE_UP:
+			moveUp();
+			break;
+		case MOVE_FOLLOW_DARK:
+			moveToDark();
+			break;
+		case MOVE_FOLLOW_LIGHT:
+			moveToLight();
+			break;
+		case MOVE_NEAREST_ITEM_UP:
+			moveToTopItem();
+			break;
+		case MOVE_NEAREST_ITEM_DOWN:
+			moveToBottomItem();
+			break;
+		break;
+	};
+}
 
 
 
