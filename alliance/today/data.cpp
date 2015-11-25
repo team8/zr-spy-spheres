@@ -90,7 +90,7 @@ void updateData() {
 	isFacingOther = game.isFacingOther();
 }
 
-bool isRed() {
+bool isSphereRed() {
 	if(myState[0] < 0) {
 		return true;
 	}
