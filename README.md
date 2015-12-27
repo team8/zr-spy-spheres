@@ -1,4 +1,7 @@
-# zr-spy-spheres
-Zero Robotics 2015 Game: SPYSpheres 3D
+This code competed in the 2015 Zero Robotics season for Paly Robotics Zero. 
 
-Objective: To score the most points against an opponent by taking pictures of them and collecting scoring objects.
+# Zero
+Zero Robotics is a programming competition run by MIT and NASA that challenges students to create autonomous programs to control SPHERES robots through space. Every year a challenge is released and teams have 5 weeks to design, develop, and debug their code. Teams start by creating versions of their code to run in a 2d environment. All functional designs move on to the 3d round which places teams on a leaderboard where they will compete their code in 3d. The top teams form alliances of three and advance on to the Alliance round which has a final design of the game. The top alliances will move on the ISS Final Round and compete their code on SPHERES on the International Space Station. Teams that do not make the ISS Finals compete in the Virtual Round where finalists play a final match on the ISS. For more information about Zero check out zerorobotics.mit.edu
+
+# Spy Spheres
+This year's game is SpySpheres and is focused around locating and taking pictures of the opposing SPHERE. Points are scored by taking and uploading pictures to Earth or by acquiring special point block objects. The field is divided into a light, dark, and gray zone which are constantly on the move. Being in the dark zone means the opponent can not take pictures of you but your SPHERE will rapidly drain energy. The light zone makes you vulnerable but allows for the capture of energy. The gray zone both exposes the SPHERE and drains energy, making it a major obstacle. Additional game elements include energy blocks to replenish energy and mirrors which can be activated to block and pictures for a set duration.
